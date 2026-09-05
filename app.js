@@ -43,6 +43,17 @@
     return Array.from({ length: axisCount }, (_, index) => { const at = offset + dataOffset + index * axisSize; return { tag: tagAt(at), min: fixed(at + 4), value: fixed(at + 8), max: fixed(at + 12) }; });
   }
 
+  async function decompressWoff2(buffer) {
+    if (location.protocol === 'file:') throw new Error('WOFF2 decoding needs a local web server. Open this checker through localhost or its deployed website.');
+    try {
+      const decoder = await import('./assets/woff2/decompress.js');
+      const output = await decoder.default(buffer);
+      return output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength);
+    } catch (error) {
+      throw new Error(`WOFF2 decoder failed: ${error.message || 'the file could not be decompressed.'}`);
+    }
+  }
+
   function setupVariations() {
     const panel = $('#variation-panel'), holder = $('#variation-controls');
     panel.hidden = !state.axes.length; holder.innerHTML = '';
@@ -171,8 +182,9 @@
     if (!['ttf','otf','woff','woff2'].includes(extension)) throw new Error('Unsupported format. Choose a TTF, OTF, WOFF, or WOFF2 file.');
     if (!window.opentype) throw new Error('The font parser is not ready. Check your internet connection and try again.');
     const buffer = await file.arrayBuffer();
+    const sourceBuffer = extension === 'woff2' ? await decompressWoff2(buffer) : buffer;
     let font;
-    try { font = window.opentype.parse(buffer); } catch { throw new Error('This font could not be read. WOFF2 may need to be converted to TTF or WOFF first.'); }
+    try { font = window.opentype.parse(sourceBuffer); } catch { throw new Error('This font could not be read. The file may be corrupted or use an unsupported font table.'); }
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
     state.objectUrl = URL.createObjectURL(file);
     const family = `CheckerFont${Date.now()}`;
@@ -180,7 +192,7 @@
     document.documentElement.style.setProperty('--checker-font', family);
     document.documentElement.style.setProperty('--checker-variation', 'normal');
     document.querySelectorAll('.glyph-render, #test-preview').forEach(el => el.style.fontFamily = family);
-    state.font = font; state.axes = readVariableAxes(buffer); setupVariations();
+    state.font = font; state.axes = readVariableAxes(sourceBuffer); setupVariations();
     const seen = new Set(); state.glyphs = font.glyphs.glyphs ? Object.values(font.glyphs.glyphs).filter(g => Number.isInteger(g.unicode) && !seen.has(g.unicode) && seen.add(g.unicode)) : [];
     $('#empty-state').hidden = true; showMetadata(font, file); filterGlyphs();
     $('#health-button').disabled = false; runHealthCheck();
