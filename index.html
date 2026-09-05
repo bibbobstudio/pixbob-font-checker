@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixbob Font Checker</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="stage2.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Pixbob Font Checker">
+        <img class="brand-mark" src="assets/favicon.png" alt="Pixbob" /><span>PIXBOB</span><em>FONT CHECKER</em>
+      </a>
+      <nav class="mode-switch" aria-label="Choose checker mode">
+        <button id="vector-mode" class="mode active" type="button">VECTOR FONT</button>
+        <button id="bitmap-mode" class="mode" type="button">BITMAP FONT</button>
+      </nav>
+      <span class="local-note"><i></i> LOCAL CHECKER</span>
+    </header>
+
+    <div id="app-notice" class="app-notice" role="status" aria-live="polite" hidden></div>
+
+    <main class="app-shell">
+      <aside class="sidebar">
+        <section class="panel upload-panel">
+          <p class="eyebrow">01 / UPLOAD FONT</p>
+          <label class="dropzone" id="dropzone" for="font-input">
+            <span class="upload-icon">↑</span>
+            <strong id="upload-title">DROP VECTOR FONT</strong>
+            <span id="upload-copy">or click to choose a file</span>
+            <small>.TTF · .OTF · .WOFF · .WOFF2</small>
+          </label>
+          <input id="font-input" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" />
+          <p class="privacy-note">Your file is processed locally in this browser.</p>
+        </section>
+
+        <section class="panel font-info" id="font-info">
+          <div class="section-title"><p class="eyebrow">02 / FONT INFO</p><span class="status-dot"></span></div>
+          <div class="empty-info">Upload a font to view its metadata.</div>
+          <div class="metadata" hidden>
+            <h1 id="family-name">—</h1>
+            <p id="subfamily-name">—</p>
+            <dl>
+              <div><dt>FORMAT</dt><dd id="font-format">—</dd></div>
+              <div><dt>FILE SIZE</dt><dd id="font-size">—</dd></div>
+              <div><dt>GLYPHS</dt><dd id="glyph-count">—</dd></div>
+              <div><dt>UPM</dt><dd id="units-per-em">—</dd></div>
+            </dl>
+            <button id="metadata-button" class="text-button" type="button">VIEW FULL METADATA <span>→</span></button>
+          </div>
+        </section>
+
+        <section class="panel settings">
+          <p class="eyebrow">03 / PREVIEW SETTINGS</p>
+          <label>TEXT COLOR</label>
+          <div class="text-color-options"><div><button type="button" data-text-color="#ffffff" aria-label="White"></button><button type="button" data-text-color="#17171c" aria-label="Black"></button><button type="button" data-text-color="#ff9e3b" aria-label="Orange"></button><button type="button" data-text-color="#ff5c8a" aria-label="Pink"></button><button type="button" data-text-color="#55d9f7" aria-label="Cyan"></button><label aria-label="Custom text color"><input id="color-input" type="color" value="#ffffff" /></label></div></div>
+          <label class="original-color-option"><input id="original-color-input" type="checkbox" /> ORIGINAL ATLAS COLORS</label>
+          <label>BACKGROUND
+            <select id="background-select"><option value="dark">Dark Studio</option><option value="light">Light</option><option value="grid">Pixel Grid</option><option value="color">Color</option></select>
+          </label>
+          <div id="background-color-options" class="background-color-options" hidden><div><button type="button" data-background-color="#18213b" aria-label="Navy"></button><button type="button" data-background-color="#30244d" aria-label="Purple"></button><button type="button" data-background-color="#5a2937" aria-label="Rose"></button><button type="button" data-background-color="#36534a" aria-label="Forest"></button><button type="button" data-background-color="#f3e7cf" aria-label="Cream"></button><label aria-label="Custom color"><input id="background-color-input" type="color" value="#2a2448" /></label></div></div>
+          <div id="variation-panel" class="variation-panel" hidden><span>VARIABLE AXES</span><div id="variation-controls"></div></div>
+          <label>GLYPH SIZE <output id="size-output">48px</output><input id="size-range" type="range" min="20" max="110" value="48" /></label>
+        </section>
+
+        <section class="panel quality-panel" id="quality-panel">
+          <div class="section-title"><p class="eyebrow">04 / FONT HEALTH</p><span id="health-summary" class="health-summary">WAITING</span></div>
+          <p class="health-copy">Run a quick check after loading a font.</p>
+          <div class="health-results" id="health-results" hidden></div>
+          <button id="health-button" class="text-button" type="button" disabled>REFRESH FONT CHECK <span>-&gt;</span></button>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <section class="panel glyph-panel">
+          <div class="glyph-header">
+            <div><p class="eyebrow">GLYPH EXPLORER</p><h2 id="glyph-title">Ready to inspect</h2></div>
+            <div class="glyph-actions">
+              <select id="category-filter" aria-label="Filter glyph"><option value="all">ALL GLYPHS</option><option value="upper">UPPERCASE</option><option value="lower">LOWERCASE</option><option value="number">NUMBERS</option><option value="symbol">SYMBOLS</option></select>
+              <label class="search"><span>⌕</span><input id="glyph-search" type="search" placeholder="Find character / U+" /></label>
+            </div>
+          </div>
+          <div class="glyph-canvas dark" id="glyph-canvas">
+            <div class="empty-state" id="empty-state"><span>Ab</span><h3>UPLOAD A FONT TO BEGIN</h3><p>All available glyphs will appear here.</p></div>
+            <div class="glyph-grid" id="glyph-grid"></div>
+          </div>
+        </section>
+
+        <section class="panel playground">
+          <div class="playground-head"><div><p class="eyebrow">TYPE TESTER</p><h2>Test your font in context</h2></div><span id="tester-font-label">NO FONT LOADED</span></div>
+          <textarea id="test-text" spellcheck="false" placeholder="Type something to test your font…">The quick brown fox jumps over the lazy dog.
+0123456789 — Pixbob Font Checker</textarea>
+          <div class="tester-presets" aria-label="Text tester presets"><span>QUICK TEST</span><button type="button" data-preset="pangram">PANGRAM</button><button type="button" data-preset="numbers">NUMBERS</button><button type="button" data-preset="symbols">SYMBOLS</button><button type="button" data-preset="clear">CLEAR</button></div>
+          <div class="test-preview dark" id="test-preview" aria-live="polite">The quick brown fox jumps over the lazy dog.<br>0123456789 — Pixbob Font Checker</div>
+          <canvas class="bitmap-test-canvas dark" id="bitmap-test-canvas" hidden></canvas>
+          <div class="tester-controls"><label>SIZE <input id="test-size" type="range" min="16" max="120" value="42" /><output id="test-size-output">42px</output></label><label>LETTER SPACING <input id="spacing-range" type="range" min="-2" max="12" value="0" /><output id="spacing-output">0px</output></label></div>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="metadata-dialog"><div class="modal-head"><div><p class="eyebrow">FONT METADATA</p><h2 id="dialog-title">—</h2></div><button id="close-dialog" type="button" aria-label="Close">×</button></div><dl id="full-metadata"></dl></dialog>
+    <dialog id="glyph-dialog"><div class="modal-head"><div><p class="eyebrow">GLYPH INSPECTOR</p><h2 id="glyph-dialog-title">—</h2></div><button id="close-glyph-dialog" type="button" aria-label="Close">×</button></div><div class="glyph-inspector"><div id="glyph-dialog-preview" class="glyph-dialog-preview">A</div><dl id="glyph-details"></dl></div></dialog>
+  </body>
+</html>

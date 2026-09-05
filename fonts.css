@@ -1,0 +1,49 @@
+@font-face {
+  font-family: 'Pixbob Sans';
+  src: url('assets/Pixbob_Sans.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pixbob Sans';
+  src: url('assets/Pixbob_Sans_Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Pixbob Sans', 'Courier New', monospace;
+  font-size: 0.92em;
+}
+
+.brand,
+.mode,
+.dropzone strong,
+.eyebrow,
+.text-button,
+.empty-state h3 {
+  font-weight: 700;
+}
+
+/* Compact supporting text in upload and glyph-search controls. */
+.dropzone > span:not(.upload-icon),
+.glyph-actions select,
+.search input,
+.search {
+  font-size: 0.76em;
+}
+
+.dropzone small {
+  font-size: 0.72em;
+}
+
+.glyph-actions select {
+  font-weight: 700;
+}
