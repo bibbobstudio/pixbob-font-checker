@@ -1,7 +1,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const input = $('#font-input'), dropzone = $('#dropzone'), grid = $('#glyph-grid');
-  const state = { font: null, glyphs: [], objectUrl: null, axes: [], mode: 'vector', bitmap: null };
+  const state = { font: null, glyphs: [], objectUrl: null, axes: [], mode: 'vector', bitmap: null, saved: { vector: null, bitmap: null } };
   const formatSize = (bytes) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   const clean = (value) => value || '—';
   const fontName = (names, key) => names?.[key]?.en || names?.[key]?.['en-US'] || Object.values(names?.[key] || {})[0] || '';
@@ -20,14 +20,19 @@
     const page = text.match(/^page\s+.*$/m)?.[0]; const common = text.match(/^common\s+.*$/m)?.[0]; const info = text.match(/^info\s+.*$/m)?.[0]; return { pages: page ? [attributes(page).file] : [], chars: text.split(/\r?\n/).filter(line => /^char\s/.test(line)).map(line => { const item = attributes(line); return { id: Number(item.id), x: Number(item.x), y: Number(item.y), width: Number(item.width), height: Number(item.height), xoffset: Number(item.xoffset || 0), yoffset: Number(item.yoffset || 0), xadvance: Number(item.xadvance ?? item.width), page: Number(item.page || 0) }; }), lineHeight: Number(common ? attributes(common).lineHeight : 16), name: info ? attributes(info).face || 'Bitmap Font' : 'Bitmap Font' };
   }
 
+  function captureInfo() { return { family: $('#family-name').textContent, subfamily: $('#subfamily-name').textContent, format: $('#font-format').textContent, size: $('#font-size').textContent, glyphs: $('#glyph-count').textContent, upm: $('#units-per-em').textContent, tester: $('#tester-font-label').textContent, dialogTitle: $('#dialog-title').textContent, dialog: $('#full-metadata').innerHTML }; }
+  function restoreInfo(info) { if (!info) return; $('#family-name').textContent = info.family; $('#subfamily-name').textContent = info.subfamily; $('#font-format').textContent = info.format; $('#font-size').textContent = info.size; $('#glyph-count').textContent = info.glyphs; $('#units-per-em').textContent = info.upm; $('#tester-font-label').textContent = info.tester; $('#dialog-title').textContent = info.dialogTitle; $('#full-metadata').innerHTML = info.dialog; $('.empty-info').hidden = true; $('.metadata').hidden = false; }
+
   function setMode(mode) {
-    state.mode = mode; state.font = null; state.bitmap = null; state.glyphs = []; grid.innerHTML = ''; $('#empty-state').hidden = false;
+    if (state.mode === 'vector' && state.font) state.saved.vector = { font: state.font, glyphs: state.glyphs, axes: state.axes, info: captureInfo() };
+    if (state.mode === 'bitmap' && state.bitmap) state.saved.bitmap = { bitmap: state.bitmap, glyphs: state.glyphs, info: captureInfo() };
+    state.mode = mode; const saved = state.saved[mode]; state.font = saved?.font || null; state.bitmap = saved?.bitmap || null; state.glyphs = saved?.glyphs || []; state.axes = saved?.axes || []; grid.innerHTML = '';
     $('#vector-mode').classList.toggle('active', mode === 'vector'); $('#bitmap-mode').classList.toggle('active', mode === 'bitmap');
     input.accept = '.ttf,.otf,.woff,.woff2,.zip,font/ttf,font/otf,font/woff,font/woff2,application/zip,application/x-zip-compressed';
     $('#upload-title').textContent = mode === 'vector' ? 'DROP VECTOR FONT' : 'DROP BITMAP FONT ZIP'; $('#upload-copy').textContent = mode === 'vector' ? 'or click to choose a file' : 'ZIP with FNT, JSON, or XML and PNG atlas'; $('.dropzone small').textContent = mode === 'vector' ? '.TTF  .OTF  .WOFF  .WOFF2' : '.ZIP ONLY';
     $('#original-color-input').closest('label').hidden = mode !== 'bitmap';
-    $('#test-preview').hidden = mode === 'bitmap'; $('#bitmap-test-canvas').hidden = mode !== 'bitmap'; $('#glyph-title').textContent = mode === 'vector' ? 'Ready to inspect' : 'Upload a bitmap font ZIP';
-    $('#health-button').disabled = true; $('#health-results').hidden = true; $('#health-summary').textContent = 'WAITING';
+    $('#test-preview').hidden = mode === 'bitmap'; $('#bitmap-test-canvas').hidden = mode !== 'bitmap';
+    if (state.font || state.bitmap) { restoreInfo(saved.info); $('#empty-state').hidden = true; $('#health-button').disabled = false; filterGlyphs(); if (mode === 'bitmap') renderBitmapPreview(); else setupVariations(); runHealthCheck(); } else { $('#empty-state').hidden = false; $('#glyph-title').textContent = mode === 'vector' ? 'Ready to inspect' : 'Upload a bitmap font ZIP'; $('#health-button').disabled = true; $('#health-results').hidden = true; $('#health-summary').textContent = 'WAITING'; }
   }
 
   function readVariableAxes(buffer) {
